@@ -20,6 +20,12 @@ testWebP(function (support) {
     document.querySelector("body").classList.add("no-webp");
   }
 });
+function getCurrentYear() {
+  var date = new Date();
+  var year = date.getFullYear();
+  document.getElementById("year").textContent = year;
+}
+getCurrentYear();
 
 //---toTopButton-----------------
 function toTop() {
@@ -42,11 +48,10 @@ function toTop() {
     });
   });
 }
-//-------------------------------
 toTop();
+//-------------------------------
 
 //burger--------------------------------------
-
 function burgerMenu() {
   var burgerBtn = document.querySelector(".header__menu_icon"),
     btnLines = burgerBtn.querySelectorAll("span"),
@@ -97,14 +102,14 @@ function customHttp() {
         xhr.open("GET", url);
         xhr.addEventListener("load", function () {
           if (Math.floor(xhr.status / 100) !== 2) {
-            cb("Error. Status code: ".concat(xhr.status), xhr);
+            cb(xhr.status, xhr);
             return;
           }
           var response = JSON.parse(xhr.responseText);
           cb(null, response);
         });
         xhr.addEventListener("error", function () {
-          cb("Error. Status code: ".concat(xhr.status), xhr);
+          cb(xhr.status, xhr);
         });
         xhr.send();
       } catch (error) {
@@ -144,7 +149,7 @@ function customHttp() {
 // Init http module
 var http = customHttp();
 var newsServises = function () {
-  var apiKey = "2b42882da9104afca4664c625f9a57ac";
+  var apiKey = "5206bc0262c64c35b62a4c815313f6f8";
   var apiUrl = "https://newsapi.org/v2";
   return {
     topHeadlines: function topHeadlines() {
@@ -153,7 +158,8 @@ var newsServises = function () {
       http.get("".concat(apiUrl, "/top-headlines?country=").concat(country, "&category=technology&apiKey=").concat(apiKey), cb);
     },
     everything: function everything(search, cb) {
-      http.get("".concat(apiUrl, "/everything?q=").concat(search, "&apiKey=").concat(apiKey), cb);
+      var trimmered = search.trimStart().replaceAll(/[<]/gi, "&#60;");
+      http.get("".concat(apiUrl, "/everything?q=").concat(trimmered, "&apiKey=").concat(apiKey), cb);
     }
   };
 }();
@@ -164,33 +170,32 @@ var ul = document.querySelector(".sidebar__ul");
 var countrySelect = Array.from(document.querySelectorAll(".sidebar__country"));
 var searchInput = document.querySelector(".sidebar__input");
 var cardsContainer = document.querySelector(".news");
+var inputBefore = document.querySelector(".input_before");
 function inputOnFocus() {
   searchInput.addEventListener("focus", function () {
     document.querySelector(".input_before").classList.add("input_active");
   });
   searchInput.addEventListener("focusout", function () {
-    if (!searchInput.value.length || searchInput.value.includes(" ")) {
-      document.querySelector(".input_before").classList.remove("input_active");
-      form.reset();
-    }
-    if (window.offsetWidth <= 768) {
-      document.querySelector(".input_before").classList.remove("input_active");
+    searchInput.value = searchInput.value.trimStart();
+    if (!searchInput.value.length) {
+      inputBefore.classList.remove("input_active");
       form.reset();
     }
   });
 }
 inputOnFocus();
-countrySelect.forEach(function (el, i) {
+countrySelect.forEach(function (el) {
   el.addEventListener("click", function (e) {
+    clearContainer(cardsContainer);
     countrySelect.forEach(function (el) {
       el.classList.remove("selected");
     });
-    var t = e.target;
-    if (!t.classList.contains("selected")) {
-      t.classList.add("selected");
-      loadNews();
+    var target = e.target;
+    if (!target.classList.contains("selected")) {
+      target.classList.add("selected");
       form.reset();
-      document.querySelector(".input_before").classList.remove("input_active");
+      inputBefore.classList.remove("input_active");
+      loadNews();
     } else {
       return;
     }
@@ -198,8 +203,10 @@ countrySelect.forEach(function (el, i) {
 });
 form.addEventListener("submit", function (e) {
   e.preventDefault();
+  if (!searchInput.value) return;
   if (window.offsetWidth <= 768) {
-    document.querySelector(".input_before").classList.remove("input_active");
+    console.log('jaaaa');
+    inputBefore.classList.remove("input_active");
     form.reset();
   }
   inputOnFocus();
@@ -220,7 +227,7 @@ function loadNews() {
       inputOnFocus();
     }
   });
-  var searchText = searchInput.value;
+  var searchText = searchInput.value.replaceAll(/[<]/gi, "&#60;");
   showPreloader();
   if (!searchText) {
     newsServises.topHeadlines(country, onGetResponse);
@@ -231,22 +238,25 @@ function loadNews() {
 function onGetResponse(err, res) {
   removePreloader();
   if (err) {
-    showAlert(err, "alert");
-    errorMessage(err);
-    return;
+    if (err == 401) {
+      errorMessage("Status code ".concat(err), "<br>unfortunately you can't use this expression or this symbol '<'");
+      return;
+    }
+    if (err == 426) {
+      errorMessage("Status code ".concat(err), '<br> This site uses a free news api "NewsApi.org", if you see this message, unfortunately for today already been used all requests for news, please be patient and try again tomorrow');
+      return;
+    }
   }
   if (!res.articles.length) {
-    errorMessage("there is not news");
+    clearContainer(cardsContainer);
+    errorMessage(searchInput.value, " not found");
   }
   renderNews(res.articles);
 }
-function showAlert() {
-  alert('error 404')
+function showAlert(err) {
+  alert(err);
 }
 function renderNews(news) {
-  if (cardsContainer.children.length) {
-    clearContainer(cardsContainer);
-  }
   var fragment = "";
   news.forEach(function (newsitem) {
     var element = renderNewsItem(newsitem);
@@ -259,9 +269,9 @@ function renderNewsItem(_ref3) {
     title = _ref3.title,
     url = _ref3.url,
     description = _ref3.description;
-  var image = urlToImage || "./img/not-found.png";
+  var image = urlToImage || "../img/not-found.png";
   var desc = description || "More info in a link";
-  return "\n  <div class=\"news__card\">\n            <div class=\"news__card_img_wrapper _ibg\">\n                <img src=\"".concat(image, "\" alt=\"img\">\n                <div class=\"news__card_title\">").concat(title.slice(0, 120), "...</div>\n            </div>\n            <div class=\"news__card_description\">\n            <div>").concat(desc.slice(0, 200), "...</div>\n            </div>\n            <div class='news__link_wrapper'>\n              <a href=\"").concat(url, "\" target='_blank' class=\"news__card_link\">Read more</a>\n            </div>\n        </div>\n  ");
+  return "\n  <div class=\"news__card\">\n    <div class=\"news__card_img_wrapper _ibg\">\n      <img src=\"".concat(image, "\" alt=\"img\">\n      <div class=\"news__card_title\">").concat(title.slice(0, 120), "...</div>\n    </div>\n    <div class=\"news__card_description\">\n      <div>").concat(desc.slice(0, 200), "...</div>\n    </div>\n    <div class='news__link_wrapper'>\n      <a href=\"").concat(url, "\" target='_blank' class=\"news__card_link\">Read more</a>\n    </div>\n  </div>\n  ");
 }
 function clearContainer(container) {
   var child = container.lastElementChild;
@@ -271,7 +281,7 @@ function clearContainer(container) {
   }
 }
 function showPreloader() {
-  document.querySelector(".header").insertAdjacentHTML("beforeend", "<div class='progress'>\n      <span></span>\n      <span></span>\n      <span></span>\n    </div>\n    ");
+  document.querySelector(".contr_wrapper").insertAdjacentHTML("afterbegin", "<div class='progress'>\n      <span></span>\n      <span></span>\n      <span></span>\n   </div>");
 }
 function removePreloader() {
   var loader = document.body.querySelector(".progress");
@@ -280,7 +290,8 @@ function removePreloader() {
   }
 }
 function errorMessage() {
-  var err = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "isnt found news";
+  var err = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "\"Nothing was not found\"";
+  var txt = arguments.length > 1 ? arguments[1] : undefined;
   clearContainer(cardsContainer);
-  cardsContainer.insertAdjacentHTML("afterbegin", "<div class='error'>\n      <h1>".concat(err, "</h1>\n    </div>\n    "));
+  return cardsContainer.insertAdjacentHTML("afterbegin", "<div class='error'>\n      <div class='error_info'>/".concat(err, "/<span>").concat(txt, "</span></div>\n    </div>\n    "));
 }
