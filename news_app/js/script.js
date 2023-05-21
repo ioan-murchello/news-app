@@ -147,7 +147,8 @@ function customHttp() {
   };
 }
 // Init http module
-var http = customHttp();
+// const http = customHttp();
+
 var newsServises = function () {
   var apiKey = "5206bc0262c64c35b62a4c815313f6f8";
   var apiUrl = "https://newsapi.org/v2";
