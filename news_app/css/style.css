@@ -399,6 +399,9 @@
 
 .footer {
   padding: 50px 0;
+  position: fixed;
+  bottom: 0;
+  left: 0;
 }
 
 .footer_main {
@@ -535,6 +538,11 @@ a {
   -moz-transition: color 0.4s ease;
   -ms-transition: color 0.4s ease;
   -o-transition: color 0.4s ease;
+}
+
+html,
+body {
+  height: 100%;
 }
 
 body {

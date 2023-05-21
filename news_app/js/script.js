@@ -205,7 +205,6 @@ form.addEventListener("submit", function (e) {
   e.preventDefault();
   if (!searchInput.value) return;
   if (window.offsetWidth <= 768) {
-    console.log('jaaaa');
     inputBefore.classList.remove("input_active");
     form.reset();
   }
@@ -242,8 +241,8 @@ function onGetResponse(err, res) {
       errorMessage("Status code ".concat(err), "<br>unfortunately you can't use this expression or this symbol '<'");
       return;
     }
-    if (err == 426) {
-      errorMessage("Status code ".concat(err), '<br> This site uses a free news api "NewsApi.org", if you see this message, unfortunately for today already been used all requests for news, please be patient and try again tomorrow');
+    if (err) {
+      errorMessage("Status code ".concat(err), '');
       return;
     }
   }
